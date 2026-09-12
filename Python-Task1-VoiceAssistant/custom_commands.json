@@ -1,0 +1,18 @@
+{
+    "study mode": {
+        "action": "response",
+        "value": "Study mode activated. Focus and do your best."
+    },
+    "good night": {
+        "action": "response",
+        "value": "Good night. Have a great rest."
+    },
+    "start coding": {
+        "action": "response",
+        "value": "Coding mode activated. Let's build something useful."
+    },
+    "motivate me": {
+        "action": "response",
+        "value": "Keep going. Small progress every day leads to big results."
+    }
+}
