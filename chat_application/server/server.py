@@ -18,6 +18,8 @@ from utils.validators import (
     validate_message
 )
 
+from datetime import datetime
+
 
 HOST = "127.0.0.1"
 PORT = 5000
@@ -206,8 +208,10 @@ def handle_client(client_socket, client_address):
 
                 print(f"[{room_name}] [{username}] {chat_message}")
 
+                timestamp = datetime.now().strftime("%H:%M")
+
                 broadcast_to_room(
-                    f"CHAT|{username}|{chat_message}",
+                    f"CHAT|{username}|{timestamp}|{chat_message}",
                     room_name,
                     client_socket
                 )

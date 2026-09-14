@@ -93,13 +93,16 @@ class ChatWindow:
             expand=True,
             padx=(0, 10)
         )
-        
+
         emoji_button = tk.Button(
             bottom_frame,
             text="😊",
             command=self.insert_emoji
         )
-        emoji_button.pack(side="right", padx=5)
+        emoji_button.pack(
+            side="right",
+            padx=5
+        )
 
         send_button = tk.Button(
             bottom_frame,
@@ -114,7 +117,7 @@ class ChatWindow:
         )
 
     # ---------- JOIN ROOM ----------
-    
+
     def join_room(self):
 
         room_name = self.room_entry.get().strip()
@@ -148,14 +151,16 @@ class ChatWindow:
 
             self.close()
 
-
     # ---------- SEND MESSAGE ----------
+
     def send_message(self):
 
         message = self.message_entry.get().strip()
 
         if not message:
             return
+            
+        message = self.replace_emoji_shortcodes(message)
 
         if message.lower() == "/quit":
             self.close()
@@ -184,8 +189,36 @@ class ChatWindow:
             )
 
             self.close()
+    
+    # ---------- EMOJI SHORTCODES ----------
+
+    EMOJI_MAP = {
+        ":smile:": "😄",
+        ":heart:": "❤️",
+        ":laugh:": "😂",
+        ":thumbsup:": "👍",
+        ":fire:": "🔥",
+        ":party:": "🎉",
+        ":cool:": "😎",
+        ":sad:": "😢",
+        ":angry:": "😡",
+        ":pray:": "🙏",
+        ":wave:": "👋",
+        ":rocket:": "🚀",
+        ":ok:": "👌",
+        ":star:": "⭐"
+    }
+
+    def replace_emoji_shortcodes(self, message):
+
+        for shortcode, emoji in self.EMOJI_MAP.items():
+            message = message.replace(shortcode, emoji)
+
+        return message
 
     
+    # ---------- EMOJI ----------
+
     def insert_emoji(self):
 
         emoji_window = tk.Toplevel(self.window)
@@ -207,7 +240,7 @@ class ChatWindow:
         ]
 
         for index, emoji in enumerate(emojis):
-            
+
             button = tk.Button(
                 emoji_window,
                 text=emoji,
@@ -224,8 +257,7 @@ class ChatWindow:
                 padx=5,
                 pady=5
             )
-    
-    
+
     def add_emoji(self, emoji, emoji_window):
 
         self.message_entry.insert(
@@ -234,22 +266,53 @@ class ChatWindow:
         )
 
         self.message_entry.focus()
-        emoji_window.destroy()        
+
+        emoji_window.destroy()
+
+    # ---------- CHECK WINDOW FOCUS ----------
+
+    def is_window_focused(self):
+
+        try:
+            return self.window.focus_displayof() is not None
+        except tk.TclError:
+            return False
+
+    # ---------- NEW MESSAGE NOTIFICATION ----------
+
+    def show_new_message_notification(
+        self,
+        username,
+        timestamp,
+        chat_message
+    ):
+
+        if username == self.username:
+            return
+
+        if not self.is_window_focused():
+
+            messagebox.showinfo(
+                "🔔 New Message",
+                f"{username} [{timestamp}]\n\n{chat_message}"
+            )
 
     # ---------- RECEIVE MESSAGE ----------
+
     def receive_messages(self):
-        
+
         while True:
-            
+
             try:
-                
+
                 message = self.client.receive_message()
 
                 if message is None:
                     break
 
+                # ---------- ROOM JOINED ----------
                 if message.startswith("ROOM|JOINED|"):
-                    
+
                     parts = message.split("|", 3)
 
                     room_name = parts[2]
@@ -257,7 +320,6 @@ class ChatWindow:
                     history = ""
 
                     if len(parts) == 4:
-                        
                         history = parts[3]
 
                     self.window.after(
@@ -267,8 +329,13 @@ class ChatWindow:
                         history
                     )
 
+                # ---------- CHAT ERROR ----------
                 elif message.startswith("CHAT|ERROR|"):
-                    error_message = message.split("|", 2)[2]
+
+                    error_message = message.split(
+                        "|",
+                        2
+                    )[2]
 
                     self.window.after(
                         0,
@@ -276,9 +343,38 @@ class ChatWindow:
                         f"[ERROR] {error_message}"
                     )
 
+                # ---------- CHAT MESSAGE ----------
+                elif message.startswith("CHAT|"):
 
+                    parts = message.split("|", 3)
+
+                    if len(parts) == 4:
+
+                        username = parts[1]
+                        timestamp = parts[2]
+                        chat_message = parts[3]
+
+                        self.window.after(
+                            0,
+                            self.display_message,
+                            f"[{timestamp}] {username}: {chat_message}"
+                        )
+
+                        self.window.after(
+                            0,
+                            self.show_new_message_notification,
+                            username,
+                            timestamp,
+                            chat_message
+                        )
+
+                # ---------- ROOM ERROR ----------
                 elif message.startswith("ROOM|ERROR|"):
-                    error_message = message.split("|", 2)[2]
+
+                    error_message = message.split(
+                        "|",
+                        2
+                    )[2]
 
                     self.window.after(
                         0,
@@ -286,16 +382,13 @@ class ChatWindow:
                         f"[ERROR] {error_message}"
                     )
 
-
+                # ---------- SYSTEM MESSAGE ----------
                 elif message.startswith("SYSTEM|"):
-                    
+
                     system_message = message.split(
                         "|",
-                         1
+                        1
                     )[1]
-
-
-                    room_name = message.split("|", 1)[1].strip()
 
                     self.window.after(
                         0,
@@ -303,8 +396,9 @@ class ChatWindow:
                         f"[SYSTEM] {system_message}"
                     )
 
+                # ---------- UNKNOWN MESSAGE ----------
                 else:
-                    
+
                     self.window.after(
                         0,
                         self.display_message,
@@ -312,9 +406,11 @@ class ChatWindow:
                     )
 
             except OSError:
+
                 break
 
     # ---------- DISPLAY MESSAGE ----------
+
     def display_message(self, message):
 
         self.chat_area.config(
@@ -334,39 +430,40 @@ class ChatWindow:
             tk.END
         )
 
-
-
+    # ---------- DISPLAY ROOM HISTORY ----------
 
     def display_room_history(self, room_name, history):
-        
+
         self.display_message(
             f"[SYSTEM] Joined room: {room_name}"
         )
 
         if history.strip():
-            
+
             self.display_message(
                 "[MESSAGE HISTORY]"
             )
 
             for line in history.strip().splitlines():
-                
+
                 self.display_message(line)
 
         else:
-            
+
             self.display_message(
                 "[No previous messages]"
             )
 
-
     # ---------- CLOSE ----------
+
     def close(self):
 
         try:
+
             self.client.close()
 
         except OSError:
+
             pass
 
         self.window.destroy()
